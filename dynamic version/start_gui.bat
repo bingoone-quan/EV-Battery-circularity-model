@@ -1,0 +1,38 @@
+@echo off
+setlocal
+
+cd /d "%~dp0"
+
+set "PY_CMD="
+where py >nul 2>nul
+if not errorlevel 1 set "PY_CMD=py"
+
+if not defined PY_CMD (
+    where python >nul 2>nul
+    if not errorlevel 1 set "PY_CMD=python"
+)
+
+if not defined PY_CMD (
+    echo Python was not found on this computer.
+    echo Please install Python first, then try again.
+    pause
+    exit /b 1
+)
+
+%PY_CMD% -m streamlit --version >nul 2>nul
+if errorlevel 1 (
+    echo Streamlit is not installed in the current Python environment.
+    echo Run this once in PowerShell:
+    echo    %PY_CMD% -m pip install -r requirements.txt
+    pause
+    exit /b 1
+)
+
+echo Starting the dynamic GUI...
+%PY_CMD% -m streamlit run app.py
+
+if errorlevel 1 (
+    echo.
+    echo The GUI exited with an error. See the message above.
+    pause
+)
