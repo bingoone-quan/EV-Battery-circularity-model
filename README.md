@@ -77,3 +77,16 @@ These files are intentionally ignored by Git because they may be large, local, o
 - Generated outputs, temporary files, Python caches, and local Excel input workbooks are excluded from version control.
 - Research papers and presentation assets under `new battery/` are also excluded from version control.
 - See the README files inside `static version/` and `dynamic version/` for model-specific details.
+
+## License and Attribution
+
+Copyright 2026 Yidi Quan.
+
+This project is licensed under the Apache License 2.0. You may use, modify,
+distribute, and use the software commercially under the terms of the license.
+Redistributions and modified versions must retain the copyright, license, and
+attribution notices.
+
+Academic use should cite this repository and, where applicable, the associated
+master's thesis or publication. Please do not present this work or substantial
+parts of it as your own original work without proper attribution.
