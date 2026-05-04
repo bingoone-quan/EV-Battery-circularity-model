@@ -43,6 +43,28 @@ VEHICLE_SEGMENT_TO_PACK_KWH = {
 }
 VEHICLE_SEGMENT_OPTIONS = [*VEHICLE_SEGMENT_TO_PACK_KWH.keys(), "Custom"]
 
+EVERBATT_TRANSPORT_MODE_OPTIONS = ["Use EverBatt defaults", "Custom distances"]
+EVERBATT_TRANSPORT_DISTANCE_INPUTS = [
+    ("From collection to disassembly", "G17", "F17"),
+    ("From disassembly to preprocessor", "G18", "F18"),
+    ("From preprocessor to CM recovery", "G19", "F19"),
+    ("From manufacturer to preprocessor/CM recovery", "G20", "F20"),
+    ("From recycler to cathode producer", "G21", "F21"),
+    ("From cathode producer to manufacturer", "G22", "F22"),
+]
+B2U_COLLECTION_SCALE_OPTIONS = ["Local", "Regional", "National"]
+B2U_COLLECTION_SCALE_TO_CODE = {
+    "Local": 1,
+    "Regional": 2,
+    "National": 3,
+}
+B2U_COLLECTION_DISTANCE_MILES = {
+    "Local": 30,
+    "Regional": 320,
+    "National": 2400,
+}
+B2U_COLLECTION_SCALE_CELL = ("Repurposing", "C22")
+
 EVERBATT_CELLS_PER_MODULE_CELL = ("Man Par.", "AC13")
 EVERBATT_MODULES_PER_PACK_SELECTED_CELL = ("Man Par.", "AC14")
 EVERBATT_MODULE_CAPACITY_SELECTED_CELL = ("Man Par.", "AG14")
@@ -96,6 +118,10 @@ def read_gui_defaults(excel_filename: str = "EverBatt.xlsm") -> dict:
     module_capacity_ah = float(read_excel_scalar(excel_filename, "Man Par.", "AG14:AG14"))
     cell_energy_kwh = float(read_excel_scalar(excel_filename, "Man Par.", "C15:C15"))
     cell_mass_kg = float(read_excel_scalar(excel_filename, "Man Par.", "C16:C16"))
+    transport_distances = {
+        label: float(read_excel_scalar(excel_filename, "Input", f"{default_cell}:{default_cell}"))
+        for label, _, default_cell in EVERBATT_TRANSPORT_DISTANCE_INPUTS
+    }
 
     return {
         "battery_chemistry": str(read_excel_scalar(excel_filename, "Input", "E9:E9")),
@@ -109,6 +135,8 @@ def read_gui_defaults(excel_filename: str = "EverBatt.xlsm") -> dict:
         "cell_energy_kwh": cell_energy_kwh,
         "cell_mass_kg": cell_mass_kg,
         "vehicle_segment": _infer_vehicle_segment(pack_capacity_kwh),
+        "everbatt_transport_distances": transport_distances,
+        "b2u_collection_scale": "National",
     }
 
 
@@ -177,6 +205,20 @@ def _apply_gui_inputs(
     _write_input_block(input_sheet, LOCATION_CELLS, location)
     input_sheet.Range(FEEDSTOCK_CELL[1]).Value = feedstock_tonnes
     input_sheet.Range(THROUGHPUT_CELL[1]).Value = throughput
+
+
+def _apply_everbatt_transport_distances(
+    workbook,
+    transport_distances: dict[str, float] | None,
+) -> None:
+    """Write or clear EverBatt user-defined recycling transport distances."""
+    input_sheet = workbook.Worksheets("Input")
+    for label, user_cell, _ in EVERBATT_TRANSPORT_DISTANCE_INPUTS:
+        if transport_distances is None:
+            input_sheet.Range(user_cell).ClearContents()
+        else:
+            input_sheet.Range(user_cell).Value = float(transport_distances[label])
+    workbook.Application.CalculateFull()
 
 
 def _build_runtime_battery_profile(workbook) -> dict:
@@ -269,6 +311,18 @@ def _apply_b2u_battery_profile(workbook, battery_profile: dict) -> None:
         repurposing_sheet.Range(B2U_MODULE_SPECIFIC_ENERGY_CELL[1]).Value = (
             battery_profile["module_specific_energy_whkg"]
         )
+    workbook.Application.CalculateFull()
+
+
+def _apply_b2u_collection_scale(workbook, collection_scale: str) -> None:
+    """Set the B2U second-life collection scale scenario."""
+    if collection_scale not in B2U_COLLECTION_SCALE_TO_CODE:
+        raise ValueError(f"Unknown B2U collection scale: {collection_scale}")
+
+    repurposing_sheet = workbook.Worksheets(B2U_COLLECTION_SCALE_CELL[0])
+    repurposing_sheet.Range(B2U_COLLECTION_SCALE_CELL[1]).Value = B2U_COLLECTION_SCALE_TO_CODE[
+        collection_scale
+    ]
     workbook.Application.CalculateFull()
 
 
@@ -377,6 +431,8 @@ def prepared_runtime_workbooks(
     module_capacity_ah: float | None = None,
     cell_energy_kwh: float | None = None,
     cell_mass_kg: float | None = None,
+    everbatt_transport_distances: dict[str, float] | None = None,
+    b2u_collection_scale: str = "National",
     macro_name: str = RESET_RECYCLE_MACRO,
 ):
     """
@@ -427,6 +483,10 @@ def prepared_runtime_workbooks(
             cell_energy_kwh=cell_energy_kwh,
             cell_mass_kg=cell_mass_kg,
         )
+        _apply_everbatt_transport_distances(
+            everbatt_workbook,
+            transport_distances=everbatt_transport_distances,
+        )
         _refresh_everbatt_with_macro(everbatt_workbook, macro_name=macro_name)
         battery_profile = _build_runtime_battery_profile(everbatt_workbook)
 
@@ -435,6 +495,7 @@ def prepared_runtime_workbooks(
             ReadOnly=False,
         )
         _apply_b2u_battery_profile(b2u_workbook, battery_profile)
+        _apply_b2u_collection_scale(b2u_workbook, b2u_collection_scale)
 
         yield {
             "everbatt_workbook": everbatt_workbook,

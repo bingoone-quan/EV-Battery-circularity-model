@@ -14,6 +14,10 @@ if str(SRC_DIR) not in sys.path:
 
 from battery_model.excel_automation import (
     BATTERY_CHEMISTRY_OPTIONS,
+    B2U_COLLECTION_DISTANCE_MILES,
+    B2U_COLLECTION_SCALE_OPTIONS,
+    EVERBATT_TRANSPORT_DISTANCE_INPUTS,
+    EVERBATT_TRANSPORT_MODE_OPTIONS,
     LOCATION_OPTIONS,
     RESET_RECYCLE_MACRO,
     VEHICLE_SEGMENT_OPTIONS,
@@ -24,6 +28,55 @@ from battery_model.excel_automation import (
 from battery_model.simulation import MARKET_TYPE_TO_ALPHA, run_simulation
 
 MODEL_SUPPORTED_CHEMISTRIES = {"NMC(811)", "NMC(111)", "NMC(532)", "NMC(622)", "NCA"}
+
+HELP_TEXT = {
+    "battery_chemistry": (
+        "Battery chemistry used by EverBatt and by the Markov model's chemistry-specific "
+        "lifetime, cascade, and recovery assumptions."
+    ),
+    "location": "Manufacturing and recycling location used by EverBatt for cost and GHG factors.",
+    "feedstock": "Annual battery feedstock entering the recycling system in the EverBatt workbook.",
+    "throughput": "Annual battery manufacturing throughput used by the EverBatt workbook.",
+    "vehicle_segment": (
+        "Representative battery-size scenario. Presets adjust the confirmed EverBatt user-defined "
+        "battery-size cells; Custom lets users enter those values directly."
+    ),
+    "cell_energy": "Energy stored by one cell. This mainly determines pack capacity under the fixed workbook structure.",
+    "cell_mass": "Mass of one cell. This mainly affects pack mass and energy density.",
+    "module_capacity": "User-defined module capacity in Ah, synchronized with EverBatt's module-capacity input.",
+    "everbatt_transport": (
+        "Controls recycling-loop transport assumptions in EverBatt. Default uses workbook values; "
+        "Custom distances lets users overwrite selected mileage inputs."
+    ),
+    "transport_distance": "Distance used by EverBatt for this transport leg in the recycling loop.",
+    "b2u_collection": (
+        "Collection-distance scenario for the B2U second-life cost calculator. Larger scale generally "
+        "means longer collection distance and higher collection burden."
+    ),
+    "subsidy_opt": (
+        "Policy strength in the optimized scenario. It increases EV battery collection through the "
+        "Markov model's subsidy-response function."
+    ),
+    "market_type": (
+        "Controls how strongly collection responds to the same subsidy level. Sensitive markets react more; "
+        "sluggish markets react less."
+    ),
+    "process": "Recycling process pathway read from EverBatt. It changes process-related GHG and cost.",
+    "regen": "Cathode regeneration pathway read from EverBatt. It changes regeneration-related GHG and cost.",
+}
+
+PARAMETER_GUIDE_MARKDOWN = """
+| Parameter | Plain-language meaning | Main effect in the static model |
+| --- | --- | --- |
+| `Battery chemistry` | Selected battery material system | Changes lifetime, cascade potential, and recovery assumptions |
+| `Vehicle segment` | Representative battery-size scenario | Changes pack capacity, pack mass, and linked B2U module inputs |
+| `Government subsidy strength` | Policy strength in the optimized scenario | Raises collection probability and can increase circular service loops |
+| `Market response` | Sensitivity of collection to subsidy | Controls how strongly policy changes transition probabilities |
+| `Process` | Recycling process route | Changes recycling-related GHG and cost |
+| `Regen` | Cathode regeneration route | Changes regeneration-related GHG and cost |
+| `EverBatt recycling transport` | Transport distance treatment in EverBatt | Changes transport-related cost and GHG |
+| `B2U second-life collection scale` | Collection scale for second-life use | Changes second-life collection cost assumptions |
+"""
 
 
 def _safe_index(options: list[str], value: str, fallback: int = 0) -> int:
@@ -105,11 +158,13 @@ def main():
                 defaults["battery_chemistry"],
                 fallback=0,
             ),
+            help=HELP_TEXT["battery_chemistry"],
         )
         location = st.selectbox(
             "Location",
             LOCATION_OPTIONS,
             index=_safe_index(LOCATION_OPTIONS, defaults["location"], fallback=0),
+            help=HELP_TEXT["location"],
         )
         feedstock_tonnes = st.number_input(
             "Feedstock tonnes (tonnes/year)",
@@ -117,6 +172,7 @@ def main():
             value=float(defaults["feedstock_tonnes"]),
             step=1000.0,
             format="%.2f",
+            help=HELP_TEXT["feedstock"],
         )
         throughput = st.number_input(
             "Throughput (GWh/year)",
@@ -124,6 +180,7 @@ def main():
             value=float(defaults["throughput"]),
             step=1.0,
             format="%.2f",
+            help=HELP_TEXT["throughput"],
         )
 
         st.header("Battery Size")
@@ -135,6 +192,7 @@ def main():
                 defaults["vehicle_segment"],
                 fallback=2,
             ),
+            help=HELP_TEXT["vehicle_segment"],
         )
         if vehicle_segment == "Custom":
             cell_energy_kwh = st.number_input(
@@ -143,6 +201,7 @@ def main():
                 value=float(defaults["cell_energy_kwh"]),
                 step=0.01,
                 format="%.4f",
+                help=HELP_TEXT["cell_energy"],
             )
             cell_mass_kg = st.number_input(
                 "Cell mass (kg)",
@@ -150,6 +209,7 @@ def main():
                 value=float(defaults["cell_mass_kg"]),
                 step=0.01,
                 format="%.4f",
+                help=HELP_TEXT["cell_mass"],
             )
             module_capacity_ah = st.number_input(
                 "Module capacity (Ah)",
@@ -157,6 +217,7 @@ def main():
                 value=float(defaults["module_capacity_ah"]),
                 step=1.0,
                 format="%.2f",
+                help=HELP_TEXT["module_capacity"],
             )
             st.caption(
                 "Custom mode writes the confirmed EverBatt user-defined cells and keeps the other workbook parameters at their defaults."
@@ -172,6 +233,44 @@ def main():
                 "Cell energy, cell mass, and module capacity are auto-scaled from the current chemistry defaults."
             )
 
+        st.header("Transport")
+        everbatt_transport_mode = st.selectbox(
+            "EverBatt recycling transport",
+            EVERBATT_TRANSPORT_MODE_OPTIONS,
+            index=0,
+            help=HELP_TEXT["everbatt_transport"],
+        )
+        if everbatt_transport_mode == "Custom distances":
+            everbatt_transport_distances = {}
+            with st.expander("EverBatt custom distances", expanded=True):
+                for label, _, _ in EVERBATT_TRANSPORT_DISTANCE_INPUTS:
+                    everbatt_transport_distances[label] = st.number_input(
+                        f"{label} (miles)",
+                        min_value=0.0,
+                        value=float(defaults["everbatt_transport_distances"][label]),
+                        step=50.0,
+                        format="%.2f",
+                        help=HELP_TEXT["transport_distance"],
+                    )
+        else:
+            everbatt_transport_distances = None
+            st.caption("EverBatt uses its workbook default recycling-loop distances.")
+
+        b2u_collection_scale = st.selectbox(
+            "B2U second-life collection scale",
+            B2U_COLLECTION_SCALE_OPTIONS,
+            index=_safe_index(
+                B2U_COLLECTION_SCALE_OPTIONS,
+                defaults["b2u_collection_scale"],
+                fallback=2,
+            ),
+            help=HELP_TEXT["b2u_collection"],
+        )
+        st.caption(
+            f"B2U typical round-trip collection distance: "
+            f"{B2U_COLLECTION_DISTANCE_MILES[b2u_collection_scale]:,} miles."
+        )
+
         st.header("Model Settings")
         subsidy_opt = st.slider(
             "Government subsidy strength",
@@ -179,14 +278,19 @@ def main():
             max_value=1.0,
             value=0.50,
             step=0.01,
+            help=HELP_TEXT["subsidy_opt"],
         )
         market_type = st.selectbox(
             "Market response",
             list(MARKET_TYPE_TO_ALPHA.keys()),
             index=1,
+            help=HELP_TEXT["market_type"],
         )
-        process = st.selectbox("Process", ["Pyro", "Hydro", "Direct"], index=2)
-        regen = st.selectbox("Regen", ["Pyro", "Hydro", "Direct"], index=2)
+        process = st.selectbox("Process", ["Pyro", "Hydro", "Direct"], index=2, help=HELP_TEXT["process"])
+        regen = st.selectbox("Regen", ["Pyro", "Hydro", "Direct"], index=2, help=HELP_TEXT["regen"])
+
+        with st.expander("Parameter guide", expanded=False):
+            st.markdown(PARAMETER_GUIDE_MARKDOWN)
 
         st.divider()
         st.caption("Baseline subsidy is fixed at 0.23")
@@ -201,7 +305,9 @@ def main():
             **Location:** `{location}`  
             **Feedstock tonnes:** `{feedstock_tonnes:.2f} tonnes/year`  
             **Throughput:** `{throughput:.2f} GWh/year`  
-            **Vehicle segment:** `{vehicle_segment}`  
+            **Vehicle segment:** `{vehicle_segment}`<br>
+            **EverBatt transport:** `{everbatt_transport_mode}`<br>
+            **B2U collection scale:** `{b2u_collection_scale}`<br>
             **Market response:** `{market_type}` (`alpha = {MARKET_TYPE_TO_ALPHA[market_type]:.1f}`)  
             **Macro refresh:** `{RESET_RECYCLE_MACRO}`  
             """
@@ -223,6 +329,10 @@ def main():
             "synchronizes the battery size assumptions across both files, and then runs "
             "the Python Monte Carlo model. Baseline vs Optimized changes policy subsidy, "
             "while market response controls the shared subsidy sensitivity for both scenarios."
+        )
+        st.write(
+            "EverBatt recycling transport distances and B2U second-life collection scale are "
+            "kept as separate model-native inputs."
         )
 
     if battery_chemistry not in MODEL_SUPPORTED_CHEMISTRIES:
@@ -250,6 +360,8 @@ def main():
                 module_capacity_ah=module_capacity_ah,
                 cell_energy_kwh=cell_energy_kwh,
                 cell_mass_kg=cell_mass_kg,
+                everbatt_transport_distances=everbatt_transport_distances,
+                b2u_collection_scale=b2u_collection_scale,
             ) as runtime_bundle:
                 runtime_battery_profile = runtime_bundle["battery_profile"]
                 results = run_simulation(
@@ -299,7 +411,9 @@ def main():
             f"Scenario setup: baseline subsidy = {results['subsidy_base']:.2f}, "
             f"optimized subsidy = {results['subsidy_opt']:.2f}, "
             f"market response = {results['market_type']} (alpha = {results['subsidy_alpha']:.1f}), "
-            f"process = {results['process']}, regen = {results['regen']}"
+            f"process = {results['process']}, regen = {results['regen']}, "
+            f"EverBatt transport = {everbatt_transport_mode}, "
+            f"B2U collection scale = {b2u_collection_scale}"
         )
 
     st.subheader("Distribution Comparison")

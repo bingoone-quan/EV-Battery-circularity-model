@@ -15,6 +15,10 @@ if str(SRC_DIR) not in sys.path:
 from battery_model.dynamic_simulation import MARKET_TYPE_TO_ALPHA, run_dynamic_simulation
 from battery_model.excel_automation import (
     BATTERY_CHEMISTRY_OPTIONS,
+    B2U_COLLECTION_DISTANCE_MILES,
+    B2U_COLLECTION_SCALE_OPTIONS,
+    EVERBATT_TRANSPORT_DISTANCE_INPUTS,
+    EVERBATT_TRANSPORT_MODE_OPTIONS,
     LOCATION_OPTIONS,
     RESET_RECYCLE_MACRO,
     VEHICLE_SEGMENT_OPTIONS,
@@ -40,6 +44,14 @@ HELP_TEXT = {
     "cell_energy": "Energy stored by one cell. This mainly determines pack capacity under the fixed workbook structure.",
     "cell_mass": "Mass of one cell. This mainly affects pack mass and energy density.",
     "module_capacity": "User-defined module capacity in Ah, synchronized with EverBatt's module-capacity input.",
+    "everbatt_transport": (
+        "Controls EverBatt recycling-loop transportation. Defaults use the workbook values; "
+        "custom distances write the user-defined distance cells."
+    ),
+    "b2u_collection_scale": (
+        "B2U second-life collection scale. This controls the B2U workbook's local, regional, "
+        "or national repurposing logistics assumption."
+    ),
     "years": "How many years the dynamic model propagates the battery system forward.",
     "n_sims": (
         "Number of Monte Carlo repetitions. Higher values make means and uncertainty bands more stable, "
@@ -259,6 +271,43 @@ def main():
             cell_mass_kg = None
             module_capacity_ah = None
 
+        st.header("Transport")
+        everbatt_transport_mode = st.selectbox(
+            "EverBatt recycling transport",
+            EVERBATT_TRANSPORT_MODE_OPTIONS,
+            index=0,
+            help=HELP_TEXT["everbatt_transport"],
+        )
+        if everbatt_transport_mode == "Custom distances":
+            everbatt_transport_distances = {}
+            with st.expander("EverBatt custom distances", expanded=True):
+                for label, _, _ in EVERBATT_TRANSPORT_DISTANCE_INPUTS:
+                    everbatt_transport_distances[label] = st.number_input(
+                        f"{label} (miles)",
+                        min_value=0.0,
+                        value=float(defaults["everbatt_transport_distances"][label]),
+                        step=50.0,
+                        format="%.2f",
+                    )
+        else:
+            everbatt_transport_distances = None
+            st.caption("EverBatt uses its workbook default recycling-loop distances.")
+
+        b2u_collection_scale = st.selectbox(
+            "B2U second-life collection scale",
+            B2U_COLLECTION_SCALE_OPTIONS,
+            index=_safe_index(
+                B2U_COLLECTION_SCALE_OPTIONS,
+                defaults["b2u_collection_scale"],
+                fallback=2,
+            ),
+            help=HELP_TEXT["b2u_collection_scale"],
+        )
+        st.caption(
+            f"B2U typical round-trip collection distance: "
+            f"{B2U_COLLECTION_DISTANCE_MILES[b2u_collection_scale]:,} miles."
+        )
+
         st.header("Dynamic Settings")
         years = st.slider(
             "Simulation horizon (years)",
@@ -349,7 +398,9 @@ def main():
             **Location:** `{location}`  
             **Feedstock tonnes:** `{feedstock_tonnes:.2f} tonnes/year`  
             **Throughput:** `{throughput:.2f} GWh/year`  
-            **Vehicle segment:** `{vehicle_segment}`  
+            **Vehicle segment:** `{vehicle_segment}`<br>
+            **EverBatt transport:** `{everbatt_transport_mode}`<br>
+            **B2U collection scale:** `{b2u_collection_scale}`<br>
             **Simulation horizon:** `{years}` years  
             **Monte Carlo runs:** `{n_sims}`  
             **Market response:** `{market_type}` (`alpha = {MARKET_TYPE_TO_ALPHA[market_type]:.1f}`)  
@@ -372,6 +423,10 @@ def main():
             "This version keeps the Yamada circular structure but updates the system year by year. "
             "EV-use and cascade-use stocks are represented as age cohorts, and the optimized scenario "
             "ramps policy over time instead of switching to a single static matrix."
+        )
+        st.write(
+            "EverBatt recycling transport distances and B2U second-life collection scale are "
+            "kept as separate model-native inputs."
         )
 
     if battery_chemistry not in MODEL_SUPPORTED_CHEMISTRIES:
@@ -399,6 +454,8 @@ def main():
                 module_capacity_ah=module_capacity_ah,
                 cell_energy_kwh=cell_energy_kwh,
                 cell_mass_kg=cell_mass_kg,
+                everbatt_transport_distances=everbatt_transport_distances,
+                b2u_collection_scale=b2u_collection_scale,
             ) as runtime_bundle:
                 runtime_battery_profile = runtime_bundle["battery_profile"]
                 results = run_dynamic_simulation(
@@ -464,7 +521,9 @@ def main():
         st.write(
             f"Dynamic settings: horizon = {years} years, EV Weibull shape = {ev_shape:.1f}, "
             f"cascade Weibull shape = {cascade_shape:.1f}, cascade lifetime factor = {cascade_factor:.2f}, "
-            f"recovery efficiency decay = {recovery_decay:.2f}."
+            f"recovery efficiency decay = {recovery_decay:.2f}, "
+            f"EverBatt transport = {everbatt_transport_mode}, "
+            f"B2U collection scale = {b2u_collection_scale}."
         )
 
     st.subheader("Dynamic Stock Evolution")
