@@ -36,6 +36,7 @@ They can be placed in either:
 
 Both layouts are supported so the original workflow remains valid.
 You do not have to move the Excel files manually unless you want the cleaner `data/` layout.
+The EverBatt and NREL B2U workbooks are included under `data/`. They remain subject to their respective original copyright and license terms and are not covered by this project's Apache License.
 
 ## How To Run
 
@@ -68,6 +69,6 @@ python .\run.py --n-sims 200 --no-show
 - The model logic, parameter settings, and Excel cell mappings are kept aligned with the MATLAB version.
 - A compatibility patch is included so Python can read the EverBatt `.xlsm` workbook even when its stylesheet metadata is not fully compatible with `openpyxl`.
 - Saved figures are written to the `outputs/` folder when `--no-show` is used.
-- `design_effort` has been removed from the active model structure. The current version only analyzes the subsidy effect across scenarios.
+- `design_effort` has been removed from the active model structure. The current version analyzes the effect of policy-strength changes across scenarios.
 - The Streamlit app writes GUI inputs into a temporary EverBatt workbook, runs the `Reset_recycle` macro, and then launches the Python simulation from the refreshed results.
 - The current GUI and Python model support `NMC(811)`, `NMC(111)`, `NMC(532)`, `NMC(622)`, and `NCA`.

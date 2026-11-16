@@ -7,7 +7,7 @@ The original static version remains untouched in the parent project. Everything 
 ## What Is New Here
 
 - Year-by-year cohort-based simulation instead of a single static absorbing-chain result
-- Dynamic policy ramp instead of only a fixed optimized subsidy point
+- Dynamic policy ramp instead of only a fixed higher-policy-strength point
 - Separate EV-use and cascade-use stock trajectories
 - Batch export for scenario comparison and later thesis figures
 - Dedicated GUI for dynamic settings and representative vehicle segments
@@ -26,6 +26,7 @@ They are resolved from:
 3. the parent project `data/`
 
 So the current setup works directly with the parent project's `data/` folder.
+The EverBatt and NREL B2U workbooks are included under `data/`. They remain subject to their respective original copyright and license terms and are not covered by this project's Apache License.
 
 ## How To Run
 

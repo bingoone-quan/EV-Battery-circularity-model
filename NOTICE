@@ -7,3 +7,7 @@ Academic use of this repository should cite the repository and, where
 applicable, the associated thesis or publication. The Apache License 2.0
 allows commercial use, modification, and distribution, but users must retain
 the copyright, license, and attribution notices required by the license.
+
+The EverBatt and NREL B2U Excel workbooks bundled in the model data folders
+are third-party tools. They are not covered by this project's Apache License
+and remain subject to their respective original copyright and license terms.

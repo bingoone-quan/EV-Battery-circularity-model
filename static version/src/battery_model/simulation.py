@@ -108,8 +108,8 @@ def run_simulation(
 
     subsidy_alpha = MARKET_TYPE_TO_ALPHA.get(market_type, 0.5)
 
-    # design_effort was removed, so scenarios differ only by policy subsidy.
-    # Market type controls the subsidy response curvature shared by both scenarios.
+    # design_effort was removed, so scenarios differ only by policy-strength input.
+    # Market type controls the policy-response curvature shared by both scenarios.
     scenario_base = Scenario(subsidy=subsidy_base, subsidy_alpha=subsidy_alpha)
     scenario_opt = Scenario(subsidy=subsidy_opt, subsidy_alpha=subsidy_alpha)
 
@@ -219,7 +219,7 @@ def run_simulation(
     print(f"Economics Info:  {cost_info}")
     print(f"Penalty Applied: {str(tech_config.regen == 'Direct')}")
     print("------------------------------------------------------------")
-    print("Metric (Per kg Battery) | Baseline   | Optimized  | Change ")
+    print("Metric (Per kg Battery) | Baseline   | Policy-enhanced | Change ")
     print("------------------------|------------|------------|--------")
 
     mean_N_base = float(np.mean(N_base))
@@ -316,7 +316,7 @@ def _build_parser():
         "--subsidy-opt",
         type=float,
         default=0.5,
-        help="Subsidy value for the optimized scenario.",
+        help="Policy-strength value for the policy-enhanced scenario.",
     )
     parser.add_argument(
         "--market-type",

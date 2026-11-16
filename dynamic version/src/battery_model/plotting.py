@@ -31,7 +31,7 @@ def create_histogram_figure(
     ax1.set_title(f"{battery_type} Battery Cycles (N)", fontsize=12)
     ax1.set_xlabel("Number of Lifecycles")
     ax1.set_ylabel("Probability Density")
-    ax1.legend(["Baseline", "Optimized"])
+    ax1.legend(["Baseline", "Policy-enhanced"])
     ax1.grid(True)
 
     ax2 = fig.add_subplot(1, 3, 2)
@@ -53,7 +53,7 @@ def create_histogram_figure(
     ax2.set_title("GHG Intensity (kg CO_2e / Cycle)", fontsize=12)
     ax2.set_xlabel("kg CO_2e per Lifecycle")
     ax2.set_ylabel("Probability Density")
-    ax2.legend(["Baseline", "Optimized"])
+    ax2.legend(["Baseline", "Policy-enhanced"])
     ax2.grid(True)
 
     ax3 = fig.add_subplot(1, 3, 3)
@@ -75,7 +75,7 @@ def create_histogram_figure(
     ax3.set_title("Net Cost Intensity ($ / Cycle)", fontsize=12)
     ax3.set_xlabel("Net System Cost (USD $)")
     ax3.set_ylabel("Probability Density")
-    ax3.legend(["Baseline", "Optimized"])
+    ax3.legend(["Baseline", "Policy-enhanced"])
     ax3.grid(True)
 
     fig.tight_layout()
@@ -150,10 +150,10 @@ def create_relationship_figure(
         s=18,
         color=(0.2, 0.55, 0.3),
         alpha=0.25,
-        label="Optimized Samples",
+        label="Policy-enhanced Samples",
     )
     _plot_binned_trend(ax1, N_base, Intensity_GHG_base, color=(0.35, 0.35, 0.35), label="Baseline Trend")
-    _plot_binned_trend(ax1, N_opt, Intensity_GHG_opt, color=(0.0, 0.45, 0.15), label="Optimized Trend")
+    _plot_binned_trend(ax1, N_opt, Intensity_GHG_opt, color=(0.0, 0.45, 0.15), label="Policy-enhanced Trend")
     ax1.set_title(f"{battery_type}: N vs GHG Intensity", fontsize=12)
     ax1.set_xlabel("Expected Cycles (N)")
     ax1.set_ylabel("GHG Intensity (kg CO_2e / Cycle)")
@@ -174,10 +174,10 @@ def create_relationship_figure(
         s=18,
         color=(0.8, 0.45, 0.1),
         alpha=0.25,
-        label="Optimized Samples",
+        label="Policy-enhanced Samples",
     )
     _plot_binned_trend(ax2, N_base, Intensity_Cost_base, color=(0.35, 0.35, 0.35), label="Baseline Trend")
-    _plot_binned_trend(ax2, N_opt, Intensity_Cost_opt, color=(0.75, 0.35, 0.0), label="Optimized Trend")
+    _plot_binned_trend(ax2, N_opt, Intensity_Cost_opt, color=(0.75, 0.35, 0.0), label="Policy-enhanced Trend")
     ax2.set_title(f"{battery_type}: N vs Cost Intensity", fontsize=12)
     ax2.set_xlabel("Expected Cycles (N)")
     ax2.set_ylabel("Net Cost Intensity ($ / Cycle)")

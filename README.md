@@ -70,13 +70,17 @@ The models use Excel workbooks such as:
 - `EverBatt.xlsm`
 - `nrel-b2u-repurposing-cost-calculator-jun2020.xlsm`
 
-These files are intentionally ignored by Git because they may be large, local, or proprietary. Place them in the relevant `data/` folder before running the model locally.
+The EverBatt and NREL B2U workbooks are included in each model's `data/` folder. They are third-party tools and are not relicensed under this project's Apache License; their original copyright and license terms continue to apply.
+
+The NREL B2U Repurposing Cost Calculator workbook is included for convenience under its applicable DOE/NREL/Alliance software use agreement. Results generated with B2U-derived inputs depend on user-defined assumptions and should not be interpreted as being validated, endorsed, or approved by DOE, NREL, or Alliance.
 
 ## Notes
 
-- Generated outputs, temporary files, Python caches, and local Excel input workbooks are excluded from version control.
+- Generated outputs, temporary files, and Python caches are excluded from version control.
 - Research papers and presentation assets under `new battery/` are also excluded from version control.
 - See the README files inside `static version/` and `dynamic version/` for model-specific details.
+
+The Windows GUI launchers check for Streamlit and install it for the current Python user when it is missing. Python must already be installed, and an internet connection is needed for first-time installation.
 
 ## License and Attribution
 

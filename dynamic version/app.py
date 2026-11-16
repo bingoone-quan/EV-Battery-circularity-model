@@ -58,15 +58,15 @@ HELP_TEXT = {
         "but the run takes longer."
     ),
     "subsidy_opt": (
-        "Final subsidy level in the optimized scenario. It affects EV battery collection rate through "
+        "Final policy-strength level in the policy-enhanced scenario. It affects EV battery collection rate through "
         "the policy-response function."
     ),
     "policy_ramp": (
-        "Number of years needed for the optimized subsidy to rise from the baseline value to the target value. "
+        "Number of years needed for the policy-enhanced pathway to rise from the baseline value to the target value. "
         "A larger value means slower policy implementation."
     ),
     "market_type": (
-        "Controls how strongly collection responds to the same subsidy level. Sensitive markets react more; "
+        "Controls how strongly collection responds to the same policy-strength level. Sensitive markets react more; "
         "sluggish markets react less."
     ),
     "process": "Recycling process pathway read from EverBatt. It changes process-related GHG and cost.",
@@ -94,9 +94,9 @@ PARAMETER_GUIDE_MARKDOWN = """
 | --- | --- | --- |
 | `Simulation horizon` | How long the system is simulated | Longer-term cumulative effects are included |
 | `Monte Carlo runs` | Number of repeated random simulations | More stable results, slower runtime |
-| `Optimized subsidy target` | Final policy strength in the optimized case | Higher collection pressure |
-| `Policy ramp years` | Speed of policy implementation | Slower arrival at the final subsidy |
-| `Market response` | Sensitivity of collection to subsidy | Stronger market response increases collection faster |
+| `Policy-enhanced target` | Final policy strength in the intervention case | Higher collection pressure |
+| `Policy ramp years` | Speed of policy implementation | Slower arrival at the final policy-strength target |
+| `Market response` | Sensitivity of collection to policy strength | Stronger market response increases collection faster |
 | `EV-use Weibull shape` | Shape of EV battery retirement over time | Retirements become more concentrated later in life |
 | `Cascade-use Weibull shape` | Shape of second-life retirement over time | Cascade retirements become more concentrated later |
 | `Cascade lifetime factor` | Relative duration of second-life use | Second-life batteries stay in use longer |
@@ -173,7 +173,7 @@ def _build_summary_markdown(results: dict) -> str:
     ]
 
     lines = [
-        "| Metric | Baseline | Optimized | Change |",
+        "| Metric | Baseline | Policy-enhanced | Change |",
         "| --- | ---: | ---: | ---: |",
     ]
     for metric, base_value, opt_value, unit in rows:
@@ -326,7 +326,7 @@ def main():
             help=HELP_TEXT["n_sims"],
         )
         subsidy_opt = st.slider(
-            "Optimized subsidy target",
+            "Policy-enhanced target",
             min_value=0.0,
             max_value=1.0,
             value=0.50,
@@ -386,7 +386,7 @@ def main():
             st.markdown(PARAMETER_GUIDE_MARKDOWN)
 
         st.divider()
-        st.caption("Baseline subsidy stays fixed at 0.23 throughout the horizon.")
+        st.caption("Baseline policy strength stays fixed at 0.23 throughout the horizon.")
         run_clicked = st.button("Run Dynamic Simulation", type="primary", use_container_width=True)
 
     info_col1, info_col2 = st.columns([1.4, 1])
@@ -421,7 +421,7 @@ def main():
         st.subheader("Dynamic Extension Notes")
         st.write(
             "This version keeps the Yamada circular structure but updates the system year by year. "
-            "EV-use and cascade-use stocks are represented as age cohorts, and the optimized scenario "
+            "EV-use and cascade-use stocks are represented as age cohorts, and the policy-enhanced scenario "
             "ramps policy over time instead of switching to a single static matrix."
         )
         st.write(

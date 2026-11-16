@@ -100,7 +100,7 @@ def _annual_retention(age: int, scale: float, shape: float) -> float:
 
 
 def _build_subsidy_path(years: int, start: float, end: float, ramp_years: int) -> np.ndarray:
-    """Create a subsidy path that ramps from baseline to the optimized level."""
+    """Create a policy path that ramps from baseline to the policy-enhanced level."""
     years = max(int(years), 1)
     if ramp_years <= 0:
         return np.full(years, end, dtype=float)
@@ -113,7 +113,7 @@ def _build_subsidy_path(years: int, start: float, end: float, ramp_years: int) -
 
 
 def _collection_rate_from_subsidy(subsidy: float, subsidy_alpha: float) -> float:
-    """Mirror the Yamada-style subsidy response for EV collection."""
+    """Mirror the Yamada-style policy-strength response for EV collection."""
     base_ev_collection = 0.25
     max_policy_ceiling = 0.90
     subsidy_k = (max_policy_ceiling / base_ev_collection) - 1.0
@@ -663,18 +663,18 @@ def _build_parser():
         action="store_true",
         help="Save figures instead of opening plot windows.",
     )
-    parser.add_argument("--subsidy-opt", type=float, default=0.5, help="Optimized subsidy target.")
+    parser.add_argument("--subsidy-opt", type=float, default=0.5, help="Policy-enhanced target.")
     parser.add_argument(
         "--policy-ramp-years",
         type=int,
         default=5,
-        help="Years needed for the optimized scenario to reach the target subsidy.",
+        help="Years needed for the policy-enhanced scenario to reach the target policy strength.",
     )
     parser.add_argument(
         "--market-type",
         default="Moderate Market",
         choices=list(MARKET_TYPE_TO_ALPHA.keys()),
-        help="Market response scenario controlling subsidy_alpha.",
+        help="Market response scenario controlling the policy-response exponent.",
     )
     parser.add_argument(
         "--process",

@@ -54,11 +54,11 @@ HELP_TEXT = {
         "means longer collection distance and higher collection burden."
     ),
     "subsidy_opt": (
-        "Policy strength in the optimized scenario. It increases EV battery collection through the "
-        "Markov model's subsidy-response function."
+        "Policy strength in the policy-enhanced scenario. It increases EV battery collection through "
+        "the Markov model's policy-response function."
     ),
     "market_type": (
-        "Controls how strongly collection responds to the same subsidy level. Sensitive markets react more; "
+        "Controls how strongly collection responds to the same policy-strength level. Sensitive markets react more; "
         "sluggish markets react less."
     ),
     "process": "Recycling process pathway read from EverBatt. It changes process-related GHG and cost.",
@@ -70,8 +70,8 @@ PARAMETER_GUIDE_MARKDOWN = """
 | --- | --- | --- |
 | `Battery chemistry` | Selected battery material system | Changes lifetime, cascade potential, and recovery assumptions |
 | `Vehicle segment` | Representative battery-size scenario | Changes pack capacity, pack mass, and linked B2U module inputs |
-| `Government subsidy strength` | Policy strength in the optimized scenario | Raises collection probability and can increase circular service loops |
-| `Market response` | Sensitivity of collection to subsidy | Controls how strongly policy changes transition probabilities |
+| `Policy-enhanced target` | Policy strength in the intervention scenario | Raises collection probability and can increase circular service loops |
+| `Market response` | Sensitivity of collection to policy strength | Controls how strongly policy changes transition probabilities |
 | `Process` | Recycling process route | Changes recycling-related GHG and cost |
 | `Regen` | Cathode regeneration route | Changes regeneration-related GHG and cost |
 | `EverBatt recycling transport` | Transport distance treatment in EverBatt | Changes transport-related cost and GHG |
@@ -100,7 +100,7 @@ def _format_signed_change(new_value: float, base_value: float, unit: str = "") -
 
 
 def _build_summary_markdown(results: dict) -> str:
-    """Build a compact Baseline vs Optimized comparison table for the GUI."""
+    """Build a compact baseline vs policy-enhanced comparison table for the GUI."""
     rows = [
         (
             "Avg Cycles (N)",
@@ -123,7 +123,7 @@ def _build_summary_markdown(results: dict) -> str:
     ]
 
     lines = [
-        "| Metric | Baseline | Optimized | Change |",
+        "| Metric | Baseline | Policy-enhanced | Change |",
         "| --- | ---: | ---: | ---: |",
     ]
     for metric, baseline, optimized, change in rows:
@@ -273,7 +273,7 @@ def main():
 
         st.header("Model Settings")
         subsidy_opt = st.slider(
-            "Government subsidy strength",
+            "Policy-enhanced target",
             min_value=0.0,
             max_value=1.0,
             value=0.50,
@@ -293,7 +293,7 @@ def main():
             st.markdown(PARAMETER_GUIDE_MARKDOWN)
 
         st.divider()
-        st.caption("Baseline subsidy is fixed at 0.23")
+        st.caption("Baseline policy strength is fixed at 0.23.")
         run_clicked = st.button("Run Simulation", type="primary", use_container_width=True)
 
     info_col1, info_col2 = st.columns([1.4, 1])
@@ -327,8 +327,9 @@ def main():
         st.write(
             "The app writes the selected inputs into temporary EverBatt and B2U workbooks, "
             "synchronizes the battery size assumptions across both files, and then runs "
-            "the Python Monte Carlo model. Baseline vs Optimized changes policy subsidy, "
-            "while market response controls the shared subsidy sensitivity for both scenarios."
+            "the Python Monte Carlo model. The baseline and policy-enhanced scenarios use "
+            "different policy-strength inputs, while market response controls the shared "
+            "policy-response sensitivity."
         )
         st.write(
             "EverBatt recycling transport distances and B2U second-life collection scale are "
@@ -382,12 +383,12 @@ def main():
 
     summary_cols = st.columns(5)
     summary_cols[0].metric("Battery Type", results["battery_type"])
-    summary_cols[1].metric("Baseline Subsidy", f"{results['subsidy_base']:.2f}")
-    summary_cols[2].metric("Optimized Subsidy", f"{results['subsidy_opt']:.2f}")
+    summary_cols[1].metric("Baseline Policy", f"{results['subsidy_base']:.2f}")
+    summary_cols[2].metric("Policy-enhanced", f"{results['subsidy_opt']:.2f}")
     summary_cols[3].metric("Pack Capacity", f"{runtime_battery_profile['pack_capacity_kwh']:.1f} kWh")
     summary_cols[4].metric("Pack Mass", f"{runtime_battery_profile['pack_mass_kg']:.1f} kg")
     st.caption(
-        f"Market response: {results['market_type']} (subsidy_alpha = {results['subsidy_alpha']:.1f}) | "
+        f"Market response: {results['market_type']} (alpha = {results['subsidy_alpha']:.1f}) | "
         f"Vehicle segment: {vehicle_segment} | Modules per pack: {runtime_battery_profile['modules_per_pack']}"
     )
 
@@ -408,8 +409,8 @@ def main():
             f"modules per pack = {runtime_battery_profile['modules_per_pack']}"
         )
         st.write(
-            f"Scenario setup: baseline subsidy = {results['subsidy_base']:.2f}, "
-            f"optimized subsidy = {results['subsidy_opt']:.2f}, "
+            f"Scenario setup: baseline policy strength = {results['subsidy_base']:.2f}, "
+            f"policy-enhanced target = {results['subsidy_opt']:.2f}, "
             f"market response = {results['market_type']} (alpha = {results['subsidy_alpha']:.1f}), "
             f"process = {results['process']}, regen = {results['regen']}, "
             f"EverBatt transport = {everbatt_transport_mode}, "
